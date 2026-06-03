@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GoAlber SuperApp</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --gopay-blue: #0081a0; --gopay-blue-dark: #005a75;
+            --gopay-dark: #1c1c1c; --gopay-darker: #121212; --gopay-nav: #222222;
+            --btn-blue: #00a5cf; --btn-green: #00c853; --btn-red: #ff3b30;
+            --success: #00c853; --danger: #ff3b30;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; display: flex; justify-content: center; }
+
+        .app-container {
+            width: 100%; max-width: 414px; height: 100vh;
+            background: var(--gopay-dark); position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- HALAMAN LOGIN --- */
+        #login-screen {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; background: var(--gopay-blue); color: white; z-index: 100;
+        }
+        .login-box { background: rgba(0,0,0,0.4); padding: 30px 20px; border-radius: 20px; width: 100%; text-align: center; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .login-box input { width: 100%; padding: 15px; margin: 15px 0; border: none; border-radius: 12px; font-size: 16px; text-align: center; background: rgba(255,255,255,0.9); outline: none;}
+        .login-box button { width: 100%; padding: 15px; background: var(--btn-green); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; }
+
+        /* --- LAYOUT UTAMA --- */
+        #main-app { display: none; flex: 1; overflow-y: auto; padding-bottom: 90px; background: var(--gopay-darker); }
+        .page-tab { display: none; animation: fadeIn 0.3s; }
+        .page-tab.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- BAGIAN ATAS (BIRU) --- */
+        .top-blue-bg {
+            background: linear-gradient(135deg, #0089a7 0%, #005a75 100%);
+            padding: 20px 20px 40px; color: white; position: relative;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .logo-area { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .pill-badge { background: rgba(0,0,0,0.2); padding: 6px 15px; border-radius: 20px; font-size: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);}
+
+        /* Area Saldo */
+        .balance-area-container { display: flex; justify-content: space-between; align-items: flex-start; }
+        .balance-left { flex: 1; }
+        .balance-label { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; margin-bottom: -5px;}
+        .balance-amount { font-size: 38px; font-weight: bold; margin-bottom: 5px; }
+        .balance-sub { font-size: 13px; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 5px; margin-bottom: 15px;}
+        
+        .action-right { display: flex; flex-direction: column; gap: 10px; width: 110px; }
+        .btn-pill { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); border-radius: 25px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+        /* Chips Bawah Biru */
+        .top-chips { display: flex; gap: 10px; overflow-x: auto; margin-top: 20px; scrollbar-width: none; }
+        .chip { background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; font-size: 12px; white-space: nowrap; color: white;}
+
+        /* --- KARTU UTAMA GELAP (DARK CARD) --- */
+        .main-dark-card { background: var(--gopay-dark); border-radius: 30px 30px 0 0; margin-top: -25px; padding: 25px 20px 20px; position: relative; z-index: 10; min-height: 500px; }
+
+        /* Grid Menu */
+        .menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 10px; margin-bottom: 25px; }
+        .menu-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+        .menu-icon { width: 50px; height: 50px; border-radius: 14px; background: #2a2a2a; display: flex; justify-content: center; align-items: center; font-size: 22px; position: relative; }
+        .menu-item span { font-size: 11px; color: #ddd; text-align: center; line-height: 1.2; }
+        .badge-muraaah { position: absolute; bottom: -5px; background: #00c853; color: black; font-size: 8px; font-weight: bold; padding: 2px 4px; border-radius: 4px; letter-spacing: 0.5px;}
+        
+        .bg-transfer { color: #00a5cf; } .bg-data { color: #ff9800; } .bg-pulsa { color: #4caf50; } .bg-pln { color: #ffeb3b; }
+
+        /* Section Avatar Bank */
+        .section-title { font-size: 15px; font-weight: bold; color: white; margin: 15px 0 10px; }
+        
+        /* --- KARTU KONTEN --- */
+        .dark-content-card { background: #222; margin-bottom: 15px; padding: 20px; border-radius: 20px; }
+        
+        /* --- NAVIGASI BAWAH --- */
+        .bottom-nav {
+            position: absolute; bottom: 0; width: 100%; background: var(--gopay-nav);
+            display: flex; justify-content: space-around; align-items: center; padding: 10px 10px 25px; border-top: 1px solid #333; z-index: 50;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #888; cursor: pointer; flex: 1; }
+        .nav-item.active { color: white; }
+        .nav-item i { font-size: 22px; }
+        .nav-item span { font-size: 10px; font-weight: 500; }
+        
+        .qris-btn-wrapper { position: relative; top: -15px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #888; cursor: pointer;}
+        .qris-circle { width: 55px; height: 55px; border-radius: 50%; background: #0081a0; border: 4px solid var(--gopay-darker); display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; box-shadow: 0 0 15px rgba(0,129,160,0.5); }
+        .qris-btn-wrapper span { font-size: 10px; margin-top: 2px;}
+
+        /* --- MODAL / BOTTOM SHEET --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; z-index: 999; }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; width: 100%; background: #ffffff; border-top-left-radius: 25px; border-top-right-radius: 25px; padding: 25px 20px; z-index: 1000; transition: bottom 0.3s; max-height: 85vh; overflow-y: auto; color: #333; }
+        .sheet-handle { width: 40px; height: 5px; background: #ddd; border-radius: 5px; margin: 0 auto 20px; }
+        
+        /* Input dalam Modal */
+        .bottom-sheet input, .bottom-sheet select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 12px; font-size: 15px; background: #f9f9f9; outline: none; }
+        .btn-modal { width: 100%; padding: 14px; border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 15px; cursor: pointer;}
+
+        /* List History */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #333; }
+        .history-item:last-child { border: none; }
+        .ht-title { font-size: 14px; font-weight: bold; color: white; }
+        .ht-desc { font-size: 12px; color: #888; margin-top: 3px; }
+        .ht-amount { font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <i class="fa-solid fa-robot" style="font-size: 50px; color: white; margin-bottom: 15px;"></i>
+            <h2 style="margin-bottom: 20px; color: white;">GoAlber</h2>
+            <p style="font-size: 13px; color: #ddd; margin-bottom: 10px;">Masukkan PIN (admin123)</p>
+            <input type="password" id="pin-input" placeholder="• • • • • •">
+            <button onclick="login()">Masuk</button>
+        </div>
+    </div>
+
+    <!-- 2. MAIN APP AREA -->
+    <div id="main-app">
+        
+        <!-- TAB 1: BERANDA -->
+        <div id="tab-home" class="page-tab active">
+            <div class="top-blue-bg">
+                <div class="header-top">
+                    <div class="logo-area"><i class="fa-solid fa-robot"></i> GoAlber</div>
+                    <div class="pill-badge">Sistem Keamanan AI</div>
+                    <div class="icon-btn"><i class="fa-solid fa-question"></i></div>
+                </div>
+
+                <div class="balance-area-container">
+                    <div class="balance-left">
+                        <div class="balance-label">Rp <span class="balance-amount" id="total-balance">0</span> <i class="fa-solid fa-eye" id="toggle-eye" onclick="toggleBalance()" style="cursor:pointer; font-size:16px;"></i></div>
+                        <div class="balance-sub"><i class="fa-solid fa-coins" style="color: #ffd700;"></i> <span id="trx-count">0</span> Coins</div>
+                        <div style="font-size: 12px; color: white; display: flex; align-items: center; gap: 5px; margin-top: 15px;"><i class="fa-solid fa-chart-simple"></i> Pantau ringkasan saldo bulanan <i class="fa-solid fa-chevron-right" style="font-size:10px;"></i></div>
+                    </div>
+                    <div class="action-right">
+                        <div class="btn-pill" onclick="openSheet('sheet-in')"><i class="fa-solid fa-circle-plus"></i> Uang Masuk</div>
+                        <div class="btn-pill" onclick="openSheet('sheet-out')"><i class="fa-solid fa-arrow-down"></i> Uang Keluar</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-dark-card">
+                <div class="menu-grid">
+                    <div class="menu-item" onclick="openSheet('sheet-in')">
+                        <div class="menu-icon bg-transfer"><i class="fa-solid fa-paper-plane"></i><div class="badge-muraaah">CEPAT</div></div>
+                        <span>Uang Masuk</span>
+                    </div>
+                    <div class="menu-item" onclick="openSheet('sheet-out')">
+                        <div class="menu-icon bg-data"><i class="fa-solid fa-money-bill-transfer"></i><div class="badge-muraaah">MURAAAH</div></div>
+                        <span>Uang Keluar</span>
+                    </div>
+                    <div class="menu-item" onclick="switchTab('stat', document.querySelectorAll('.nav-item')[3])">
+                        <div class="menu-icon bg-pulsa"><i class="fa-solid fa-chart-line"></i></div>
+                        <span>Statistik</span>
+                    </div>
+                    <div class="menu-item" onclick="openSheet('sheet-print')">
+                        <div class="menu-icon bg-pln"><i class="fa-solid fa-print"></i><div class="badge-muraaah">PDF</div></div>
+                        <span>Cetak</span>
+                    </div>
+                </div>
+
+                <div class="section-title">Rekening & Dompet Anda</div>
+                <!-- Tempat rendering kotak memanjang dompet -->
+                <div id="home-wallet-list" style="margin-bottom: 25px;"></div>
+
+                <div class="section-title">Spesial cuma buat Alber</div>
+                <div style="background: #2a2a2a; padding: 15px; border-radius: 16px; display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                    <div style="width: 50px; height: 50px; background: #333; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 20px; color: #ffeb3b;"><i class="fa-solid fa-award"></i></div>
+                    <div>
+                        <div style="color: white; font-size: 13px; font-weight: bold;">Makin rajin catat saldo!</div>
+                        <div style="color: #aaa; font-size: 11px; margin-top: 4px;">Pantau terus pemasukanmu.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: KEUANGAN (Hanya berisi ulang list untuk tab terpisah) -->
+        <div id="tab-wallet" class="page-tab">
+            <div style="padding: 20px; background: var(--gopay-darker); min-height: 100vh;">
+                <h3 style="color: white; margin-bottom: 20px;">Portofolio Keuangan</h3>
+                <div id="full-wallet-list"></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SCAN AI -->
+        <div id="tab-scan" class="page-tab">
+            <div style="padding: 20px; text-align: center; color: white;">
+                <h3 style="margin-bottom: 20px;">Scan Struk Belanja</h3>
+                <div class="dark-content-card" style="border: 1px dashed #555;">
+                    <i class="fa-solid fa-camera" style="font-size: 40px; color: #888; margin-bottom: 15px;"></i>
+                    <p style="font-size: 13px; color: #ccc; margin-bottom: 20px;">Arahkan kamera ke struk. AI akan deteksi total bayar sebagai pengeluaran otomatis.</p>
+                    
+                    <div style="position: relative; display: inline-block; width: 100%;">
+                        <button style="width:100%; padding:15px; border-radius:25px; background:var(--btn-blue); color:white; font-weight:bold; border:none;"><i class="fa-solid fa-camera"></i> Buka Kamera</button>
+                        <input type="file" accept="image/*" capture="environment" onchange="runScan(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                    </div>
+                    <div id="scan-loading" style="display: none; color: var(--btn-blue); font-size: 13px; font-weight: bold; margin-top: 15px;"><i class="fa-solid fa-spinner fa-spin"></i> Membaca struk...</div>
+                </div>
+
+                <div class="dark-content-card" id="scan-result" style="display: none; text-align: left;">
+                    <label style="font-size: 12px; font-weight: bold; color: #ccc;">Potong dari:</label>
+                    <select id="scan-bank" style="width:100%; padding:12px; border-radius:10px; background:#333; color:white; border:none; margin-bottom:15px; outline:none;"></select>
+                    
+                    <label style="font-size: 12px; font-weight: bold; color: #ccc;">Nominal Terdeteksi:</label>
+                    <input type="number" id="scan-amount" style="width:100%; padding:12px; border-radius:10px; background:#333; color:white; border:none; margin-bottom:15px; outline:none;">
+                    
+                    <label style="font-size: 12px; font-weight: bold; color: #ccc;">Keterangan:</label>
+                    <input type="text" id="scan-desc" value="Scan Struk Belanja" style="width:100%; padding:12px; border-radius:10px; background:#333; color:white; border:none; margin-bottom:15px; outline:none;">
+                    
+                    <button style="width:100%; padding:15px; border-radius:25px; background:var(--danger); color:white; font-weight:bold; border:none;" onclick="processTransaction('scan')">Simpan Pengeluaran</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: STATISTIK & RIWAYAT -->
+        <div id="tab-stat" class="page-tab">
+            <div style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: white; margin: 0;">Riwayat & Analisis</h3>
+                    <select id="month-filter" onchange="renderStatTab()" style="background:#333; color:white; border:1px solid #555; padding:8px 12px; border-radius:10px; outline:none; font-size:12px;">
+                        <option value="all">Semua Bulan</option>
+                        <option value="01">Januari</option>
+                        <option value="02">Februari</option>
+                        <option value="03">Maret</option>
+                        <option value="04">April</option>
+                        <option value="05">Mei</option>
+                        <option value="06">Juni</option>
+                        <option value="07">Juli</option>
+                        <option value="08">Agustus</option>
+                        <option value="09">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <div style="flex:1; background:#0a2915; padding:15px; border-radius:15px; border:1px solid var(--success);">
+                        <div style="font-size:11px; color:var(--success); margin-bottom:5px;">Pemasukan</div>
+                        <div style="font-size:14px; font-weight:bold; color:white;">+ Rp <span id="stat-month-in">0</span></div>
+                    </div>
+                    <div style="flex:1; background:#330a0a; padding:15px; border-radius:15px; border:1px solid var(--danger);">
+                        <div style="font-size:11px; color:var(--danger); margin-bottom:5px;">Pengeluaran</div>
+                        <div style="font-size:14px; font-weight:bold; color:white;">- Rp <span id="stat-month-out">0</span></div>
+                    </div>
+                </div>
+                
+                <div class="dark-content-card">
+                    <div style="font-size:12px; color:#aaa; text-align:center; margin-bottom:10px;">Distribusi Pengeluaran</div>
+                    <div style="height: 180px;"><canvas id="balanceChart"></canvas></div>
+                </div>
+
+                <div class="section-title">Rincian Transaksi</div>
+                <div class="dark-content-card" id="history-list" style="padding: 10px 20px;"></div>
+            </div>
+        </div>
+        
+        <!-- TAB 5: PROFIL -->
+        <div id="tab-profile" class="page-tab">
+            <div style="padding: 20px; text-align: center;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: #444; color: white; display: flex; justify-content: center; align-items: center; font-size: 30px; margin: 20px auto 10px;"><i class="fa-solid fa-user-graduate"></i></div>
+                <h2 style="color: white; margin-bottom: 5px;">Alber</h2>
+                <p style="color: #888; font-size: 13px; margin-bottom: 30px;">Pengguna Setia GoAlber</p>
+                <button onclick="logout()" style="width:100%; padding:15px; border-radius:25px; background:#333; color:var(--danger); font-weight:bold; border:none;"><i class="fa-solid fa-right-from-bracket"></i> Keluar (Logout)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. BOTTOM NAVIGATION -->
+    <div class="bottom-nav" id="bottom-nav" style="display: none;">
+        <div class="nav-item active" onclick="switchTab('home', this)"><i class="fa-solid fa-house"></i><span>Beranda</span></div>
+        <div class="nav-item" onclick="switchTab('wallet', this)"><i class="fa-solid fa-wallet"></i><span>Keuangan</span></div>
+        
+        <div class="qris-btn-wrapper" onclick="switchTab('scan', null)">
+            <div class="qris-circle"><i class="fa-solid fa-expand"></i></div>
+            <span>SCAN</span>
+        </div>
+
+        <div class="nav-item" onclick="switchTab('stat', this)"><i class="fa-solid fa-receipt"></i><span>Riwayat</span></div>
+        <div class="nav-item" onclick="switchTab('profile', this)"><i class="fa-solid fa-user"></i><span>Profil</span></div>
+    </div>
+
+    <!-- ================= MODAL BOTTOM SHEETS ================= -->
+    <div class="bottom-sheet" id="sheet-in">
+        <div class="sheet-handle"></div>
+        <h3 style="margin-bottom: 20px; color: var(--success);"><i class="fa-solid fa-download"></i> Uang Masuk</h3>
+        <select id="in-bank" class="bank-select"></select>
+        <input type="number" id="in-amount" placeholder="Nominal (Cth: 50000)">
+        <input type="text" id="in-desc" placeholder="Keterangan Pemasukan">
+        <button class="btn-modal" style="background: var(--btn-green);" onclick="processTransaction('in')">Simpan Pemasukan</button>
+    </div>
+
+    <div class="bottom-sheet" id="sheet-out">
+        <div class="sheet-handle"></div>
+        <h3 style="margin-bottom: 20px; color: var(--danger);"><i class="fa-solid fa-upload"></i> Uang Keluar</h3>
+        <select id="out-bank" class="bank-select"></select>
+        <input type="number" id="out-amount" placeholder="Nominal (Cth: 50000)">
+        <input type="text" id="out-desc" placeholder="Keterangan Pengeluaran">
+        <button class="btn-modal" style="background: var(--btn-red);" onclick="processTransaction('out')">Simpan Pengeluaran</button>
+    </div>
+
+    <!-- Modal Cetak dengan Filter Bank & Bulan -->
+    <div class="bottom-sheet" id="sheet-print">
+        <div class="sheet-handle"></div>
+        <h3 style="margin-bottom: 20px; color: #0081a0;"><i class="fa-solid fa-print"></i> Cetak Mutasi Transaksi</h3>
+        
+        <label style="font-size: 12px; font-weight: bold; color: #888;">Pilih Dompet / Rekening:</label>
+        <select id="print-bank" class="bank-select-all"></select>
+        
+        <label style="font-size: 12px; font-weight: bold; color: #888;">Pilih Bulan:</label>
+        <select id="print-month">
+            <option value="all">Semua Bulan</option>
+            <option value="01">Januari</option>
+            <option value="02">Februari</option>
+            <option value="03">Maret</option>
+            <option value="04">April</option>
+            <option value="05">Mei</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">Agustus</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Desember</option>
+        </select>
+        
+        <button class="btn-modal" style="background: #0081a0;" onclick="executePrint()">Cetak Laporan PDF</button>
+    </div>
+</div>
+
+<script>
+    const PIN = "admin123";
+    
+    const banksConf = {
+        cash: { name: "Tunai", color: "#10b981", type: "cash" },
+        bri: { name: "BRI", color: "#00529C", type: "bank" },
+        bsi: { name: "BSI", color: "#00A39D", type: "bank" },
+        bca_syariah: { name: "BCA", color: "#0060AF", type: "bank" },
+        mandiri: { name: "Mandiri", color: "#F2A900", type: "bank" },
+        gopay: { name: "GoPay", color: "#00AED6", type: "ewallet" },
+        dana: { name: "DANA", color: "#118EEA", type: "ewallet" }
+    };
+
+    let bankData = JSON.parse(localStorage.getItem('goalber_banks')) || initBank();
+    let trxData = JSON.parse(localStorage.getItem('goalber_trx')) || [];
+    let isHidden = false; let chartObj = null;
+
+    function initBank() { let d={}; for(let k in banksConf) d[k]={balance:0}; return d; }
+    const fmtRpNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
+    const fmtRpFull = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+    // --- AUTH ---
+    function login() {
+        if(document.getElementById('pin-input').value === PIN) {
+            sessionStorage.setItem('goalber_auth', '1'); initApp();
+        } else alert("PIN Salah!");
+    }
+    function logout() { sessionStorage.removeItem('goalber_auth'); location.reload(); }
+    window.onload = () => { if(sessionStorage.getItem('goalber_auth') === '1') initApp(); };
+
+    function initApp() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('bottom-nav').style.display = 'flex';
+        populateSelects(); refreshUI();
+    }
+
+    // --- NAVIGASI ---
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.page-tab').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        if(btn) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); btn.classList.add('active'); }
+        if(tabId === 'stat') renderStatTab();
+    }
+    function openSheet(id) { document.getElementById('overlay').style.display = 'block'; document.getElementById(id).style.bottom = '0'; }
+    function closeSheet() { document.getElementById('overlay').style.display = 'none'; document.querySelectorAll('.bottom-sheet').forEach(s => s.style.bottom = '-100%'); }
+
+    // --- UI REFRESH ---
+    function populateSelects() {
+        let opts = '', optsAll = '<option value="all">Semua Rekening & Dompet</option>';
+        for(let k in banksConf) {
+            let t = `<option value="${k}">${banksConf[k].name}</option>`;
+            opts += t; optsAll += t;
+        }
+        document.querySelectorAll('.bank-select').forEach(s => s.innerHTML = opts);
+        document.querySelectorAll('.bank-select-all').forEach(s => s.innerHTML = optsAll);
+        document.getElementById('scan-bank').innerHTML = opts;
+    }
+
+    function toggleBalance() {
+        isHidden = !isHidden;
+        document.getElementById('toggle-eye').className = isHidden ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+        refreshUI();
+    }
+
+    function refreshUI() {
+        let homeWallets = '', walletHtml = '', tot = 0;
+        
+        for(let k in banksConf) {
+            let b = bankData[k].balance; tot += b;
+            
+            let icon = banksConf[k].type === 'cash' ? 'fa-wallet' : (banksConf[k].type === 'bank' ? 'fa-building-columns' : 'fa-mobile-screen');
+
+            // Format Kotak Memanjang di Beranda
+            homeWallets += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#2a2a2a; padding:15px; border-radius:15px; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:40px; height:40px; border-radius:10px; background:${banksConf[k].color}; color:white; display:flex; justify-content:center; align-items:center; font-size:16px;"><i class="fa-solid ${icon}"></i></div>
+                        <div>
+                            <div style="color:white; font-size:14px; font-weight:bold;">${banksConf[k].name}</div>
+                            <div style="color:#aaa; font-size:11px;">Alber</div>
+                        </div>
+                    </div>
+                    <div style="color:white; font-size:15px; font-weight:bold;">${isHidden ? 'Rp •••' : fmtRpFull(b)}</div>
+                </div>`;
+                
+            walletHtml += homeWallets; 
+        }
+        
+        document.getElementById('home-wallet-list').innerHTML = homeWallets;
+        document.getElementById('full-wallet-list').innerHTML = homeWallets;
+        document.getElementById('total-balance').innerText = isHidden ? "••••••" : fmtRpNum(tot);
+        document.getElementById('trx-count').innerText = trxData.length;
+
+        renderStatTab();
+    }
+
+    // --- RENDER TAB STATISTIK ---
+    function renderStatTab() {
+        let mFilter = document.getElementById('month-filter').value;
+        let filteredTrx = mFilter === 'all' ? trxData : trxData.filter(t => t.date.substring(3,5) === mFilter);
+
+        let histHtml = '';
+        if(!filteredTrx.length) histHtml = '<p style="text-align:center;color:#888;font-size:12px;padding:10px;">Belum ada transaksi</p>';
+        
+        let totalKeluar = 0, totalMasuk = 0;
+        let chartDataMap = {}; for(let k in banksConf) chartDataMap[k] = 0;
+
+        [...filteredTrx].reverse().forEach(t => {
+            let isIn = t.type === 'in';
+            if(isIn) totalMasuk += t.amount; else { totalKeluar += t.amount; chartDataMap[t.bank] += t.amount; }
+            histHtml += `
+            <div class="history-item">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div style="width:35px;height:35px; border-radius:50%; background:#333; color:${isIn?'var(--success)':'white'}; display:flex; justify-content:center; align-items:center;"><i class="fa-solid ${isIn?'fa-arrow-down':'fa-arrow-up'}"></i></div>
+                    <div>
+                        <div class="ht-title">${banksConf[t.bank].name}</div>
+                        <div class="ht-desc">${t.date} | ${t.desc}</div>
+                    </div>
+                </div>
+                <div class="ht-amount" style="color:${isIn?'var(--success)':'white'};">${isIn?'+':'-'}${fmtRpNum(t.amount)}</div>
+            </div>`;
+        });
+        
+        document.getElementById('history-list').innerHTML = histHtml;
+        document.getElementById('stat-month-in').innerText = fmtRpNum(totalMasuk);
+        document.getElementById('stat-month-out').innerText = fmtRpNum(totalKeluar);
+
+        let ctx = document.getElementById('balanceChart').getContext('2d'), lbl=[], dt=[], col=[];
+        for(let k in banksConf) if(chartDataMap[k] > 0) { lbl.push(banksConf[k].name); dt.push(chartDataMap[k]); col.push(banksConf[k].color); }
+        if(chartObj) chartObj.destroy();
+        Chart.defaults.color = '#ccc';
+        chartObj = new Chart(ctx, { type: 'doughnut', data: { labels: lbl.length?lbl:['Kosong'], datasets: [{ data: dt.length?dt:[1], backgroundColor: col.length?col:['#444'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins:{legend:{position:'right'}} } });
+    }
+
+    // --- TRANSAKSI ---
+    function processTransaction(tipeForm) {
+        let tipe = tipeForm === 'in' ? 'in' : 'out';
+        let bKey = document.getElementById(`${tipeForm}-bank`).value;
+        let amt = parseInt(document.getElementById(`${tipeForm}-amount`).value);
+        let dsc = document.getElementById(`${tipeForm}-desc`).value || 'Transaksi';
+
+        if(!amt || amt <= 0) return alert("Nominal salah!");
+        if(tipe === 'out' && bankData[bKey].balance < amt) if(!confirm(`Saldo ${banksConf[bKey].name} kurang. Lanjut?`)) return;
+
+        tipe === 'in' ? bankData[bKey].balance += amt : bankData[bKey].balance -= amt;
+        let d = new Date(), dStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+        trxData.push({ id: Date.now(), type: tipe, bank: bKey, amount: amt, desc: dsc, date: dStr });
+        
+        localStorage.setItem('goalber_banks', JSON.stringify(bankData));
+        localStorage.setItem('goalber_trx', JSON.stringify(trxData));
+
+        document.getElementById(`${tipeForm}-amount`).value = '';
+        if(tipeForm !== 'scan') document.getElementById(`${tipeForm}-desc`).value = '';
+
+        closeSheet(); refreshUI();
+        if(tipeForm === 'scan') { document.getElementById('scan-result').style.display = 'none'; switchTab('home', document.querySelectorAll('.nav-item')[0]); }
+    }
+
+    // --- CETAK PDF BERDASARKAN FILTER ---
+    function executePrint() {
+        let bFilter = document.getElementById('print-bank').value;
+        let mFilter = document.getElementById('print-month').value;
+        
+        let targetData = trxData;
+        if(bFilter !== 'all') targetData = targetData.filter(t => t.bank === bFilter);
+        if(mFilter !== 'all') targetData = targetData.filter(t => t.date.substring(3,5) === mFilter);
+        
+        let bankName = bFilter === 'all' ? 'Semua Rekening & Dompet' : banksConf[bFilter].name;
+        let monthName = mFilter === 'all' ? 'Semua Waktu' : document.getElementById('print-month').options[document.getElementById('print-month').selectedIndex].text;
+        
+        let html = `<html><head><title>Mutasi GoAlber</title><style>body{font-family:sans-serif;padding:20px} table{width:100%;border-collapse:collapse;margin-top:20px} th,td{border:1px solid #ccc;padding:10px;text-align:left}</style></head><body><h2>Laporan Transaksi - GoAlber</h2><p><strong>Dompet / Rekening:</strong> ${bankName}<br><strong>Periode:</strong> ${monthName}</p><table><tr><th>Tanggal</th><th>Dompet</th><th>Keterangan</th><th>Uang Masuk</th><th>Uang Keluar</th></tr>`;
+        
+        if(targetData.length === 0) {
+            html += `<tr><td colspan="5" style="text-align:center;">Tidak ada riwayat transaksi pada filter ini.</td></tr>`;
+        } else {
+            [...targetData].reverse().forEach(t => {
+                let i = t.type==='in', a = fmtRpFull(t.amount);
+                html += `<tr><td>${t.date}</td><td>${banksConf[t.bank].name}</td><td>${t.desc}</td><td style="color:green">${i?a:'-'}</td><td style="color:red">${!i?a:'-'}</td></tr>`;
+            });
+        }
+        html += `</table></body></html>`;
+        let w = window.open('','_blank'); w.document.write(html); w.document.close();
+        setTimeout(() => w.print(), 500);
+        closeSheet();
+    }
+
+    // --- AI SCAN ---
+    async function runScan(input) {
+        if(!input.files[0]) return;
+        document.getElementById('scan-loading').style.display = 'block'; document.getElementById('scan-result').style.display = 'none';
+        try {
+            let res = await Tesseract.recognize(input.files[0], 'ind+eng');
+            let m = res.data.text.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?/g), mx=0;
+            if(m) m.forEach(x => { let n=parseInt(x.replace(/[.,]/g,'')); if(n>mx && n<100000000) mx=n; });
+            document.getElementById('scan-loading').style.display = 'none'; document.getElementById('scan-result').style.display = 'block';
+            if(mx>0) document.getElementById('scan-amount').value = mx; else alert("Gagal baca angka. Ketik manual.");
+        } catch(e) { alert("Error scan."); document.getElementById('scan-loading').style.display = 'none'; }
+    }
+</script>
+</body>
+</html>
